@@ -21,7 +21,8 @@ class MainActivity : ComponentActivity() {
             FrenchPressTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     CalculatorScreen(
-                        viewModel = viewModel(factory = CalculatorViewModel.Factory(application))
+                        viewModel = viewModel(factory = CalculatorViewModel.Factory),
+                        modifier = Modifier.padding(innerPadding)
                     )
                 }
             }

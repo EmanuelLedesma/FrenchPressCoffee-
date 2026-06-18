@@ -3,7 +3,7 @@ package com.frenchpress.coffee.model
 data class CoffeeResult(
     val waterMl: Double,
     val coffeeG: Double,
-    val servings: Double
+    val servings: Int
 ) {
     val waterFormatted: String
         get() {
@@ -15,41 +15,30 @@ data class CoffeeResult(
         get() = String.format("%.0f g", coffeeG)
 }
 
-enum class Intensity(val label: String, val ratio: Int, val emoji: String) {
-    SUAVE("Suave", 17, "\uD83C\uDF3E"),
-    MEDIO("Medio", 15, "\u2615"),
-    FUERTE("Fuerte", 13, "\uD83D\uDD25");
-
-    companion object {
-        fun fromRatio(ratio: Int): Intensity = when {
-            ratio >= 16 -> SUAVE
-            ratio >= 14 -> MEDIO
-            else -> FUERTE
-        }
-    }
+enum class Intensity(val label: String, val coffeePerPersonG: Double, val emoji: String) {
+    SUAVE("Suave", 8.0, "\uD83C\uDF3E"),
+    MEDIO("Medio", 10.0, "\u2615"),
+    FUERTE("Fuerte", 12.0, "\uD83D\uDD25");
 }
 
 data class CoffeeSettings(
-    val servings: Double = 1.0,
-    val mlPerServing: Int = 170,
+    val servings: Int = 1,
+    val mlPerServing: Int = 150,
     val intensity: Intensity = Intensity.MEDIO
 ) {
-    val ratio: Int
-        get() = intensity.ratio
-
     companion object {
-        const val MIN_SERVINGS = 0.5
-        const val MAX_SERVINGS = 10.0
-        const val SERVING_STEP = 0.5
-        const val DEFAULT_ML_PER_SERVING = 170
+        const val MIN_SERVINGS = 1
+        const val MAX_SERVINGS = 10
+        const val DEFAULT_ML_PER_SERVING = 150
     }
 }
 
 object CoffeeCalculator {
 
     fun calculate(settings: CoffeeSettings): CoffeeResult {
-        val totalWaterMl = settings.servings * settings.mlPerServing
-        val totalCoffeeG = totalWaterMl / settings.ratio
+        val coffeePerPerson = settings.intensity.coffeePerPersonG
+        val totalCoffeeG = settings.servings * coffeePerPerson
+        val totalWaterMl = settings.servings * (settings.mlPerServing + coffeePerPerson * 3.0)
 
         return CoffeeResult(
             waterMl = totalWaterMl,

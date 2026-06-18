@@ -6,7 +6,6 @@ import com.frenchpress.coffee.model.CoffeeCalculator
 import com.frenchpress.coffee.model.CoffeeResult
 import com.frenchpress.coffee.model.CoffeeSettings
 import com.frenchpress.coffee.model.Intensity
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -34,26 +33,55 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     private val _showCustomize = MutableStateFlow(false)
     val showCustomize: StateFlow<Boolean> = _showCustomize.asStateFlow()
 
-    private val _timerRunning = MutableStateFlow(false)
-    val timerRunning: StateFlow<Boolean> = _timerRunning.asStateFlow()
+    private val _showServingsSheet = MutableStateFlow(false)
+    val showServingsSheet: StateFlow<Boolean> = _showServingsSheet.asStateFlow()
 
-    private val _timerSeconds = MutableStateFlow(240)
-    val timerSeconds: StateFlow<Int> = _timerSeconds.asStateFlow()
+    private val _showMlSheet = MutableStateFlow(false)
+    val showMlSheet: StateFlow<Boolean> = _showMlSheet.asStateFlow()
 
-    private var timerThread: Thread? = null
+    private val _timer4Running = MutableStateFlow(false)
+    val timer4Running: StateFlow<Boolean> = _timer4Running.asStateFlow()
 
-    fun setServings(servings: Double) {
+    private val _timer4Seconds = MutableStateFlow(240)
+    val timer4Seconds: StateFlow<Int> = _timer4Seconds.asStateFlow()
+
+    private val _timer5Running = MutableStateFlow(false)
+    val timer5Running: StateFlow<Boolean> = _timer5Running.asStateFlow()
+
+    private val _timer5Seconds = MutableStateFlow(300)
+    val timer5Seconds: StateFlow<Int> = _timer5Seconds.asStateFlow()
+
+    private var timer4Thread: Thread? = null
+    private var timer5Thread: Thread? = null
+
+    fun setServings(servings: Int) {
         val clamped = servings.coerceIn(CoffeeSettings.MIN_SERVINGS, CoffeeSettings.MAX_SERVINGS)
         _settings.update { it.copy(servings = clamped) }
         recalculate()
     }
 
     fun incrementServings() {
-        setServings(_settings.value.servings + CoffeeSettings.SERVING_STEP)
+        setServings(_settings.value.servings + 1)
     }
 
     fun decrementServings() {
-        setServings(_settings.value.servings - CoffeeSettings.SERVING_STEP)
+        setServings(_settings.value.servings - 1)
+    }
+
+    fun openServingsSheet() {
+        _showServingsSheet.value = true
+    }
+
+    fun dismissServingsSheet() {
+        _showServingsSheet.value = false
+    }
+
+    fun openMlSheet() {
+        _showMlSheet.value = true
+    }
+
+    fun dismissMlSheet() {
+        _showMlSheet.value = false
     }
 
     fun setIntensity(intensity: Intensity) {
@@ -71,43 +99,76 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
         _showCustomize.update { !it }
     }
 
-    fun reset() {
-        _settings.value = CoffeeSettings()
-        _result.value = CoffeeCalculator.calculate(CoffeeSettings())
-        _showCustomize.value = false
-        stopTimer()
-    }
-
-    fun toggleTimer() {
-        if (_timerRunning.value) {
-            stopTimer()
+    fun toggleTimer4() {
+        if (_timer4Running.value) {
+            stopTimer4()
         } else {
-            startTimer()
+            startTimer4()
         }
     }
 
-    private fun startTimer() {
-        _timerSeconds.value = 240
-        _timerRunning.value = true
-        timerThread = Thread {
+    fun toggleTimer5() {
+        if (_timer5Running.value) {
+            stopTimer5()
+        } else {
+            startTimer5()
+        }
+    }
+
+    private fun startTimer4() {
+        _timer4Seconds.value = 240
+        _timer4Running.value = true
+        timer4Thread = Thread {
             try {
-                while (_timerRunning.value && _timerSeconds.value > 0) {
+                while (_timer4Running.value && _timer4Seconds.value > 0) {
                     Thread.sleep(1000)
-                    _timerSeconds.update { it - 1 }
+                    _timer4Seconds.update { it - 1 }
                 }
-                _timerRunning.value = false
-                _timerSeconds.value = 240
+                _timer4Running.value = false
+                _timer4Seconds.value = 240
             } catch (_: InterruptedException) {
-                _timerRunning.value = false
+                _timer4Running.value = false
             }
         }.also { it.start() }
     }
 
-    private fun stopTimer() {
-        _timerRunning.value = false
-        _timerSeconds.value = 240
-        timerThread?.interrupt()
-        timerThread = null
+    private fun stopTimer4() {
+        _timer4Running.value = false
+        _timer4Seconds.value = 240
+        timer4Thread?.interrupt()
+        timer4Thread = null
+    }
+
+    private fun startTimer5() {
+        _timer5Seconds.value = 300
+        _timer5Running.value = true
+        timer5Thread = Thread {
+            try {
+                while (_timer5Running.value && _timer5Seconds.value > 0) {
+                    Thread.sleep(1000)
+                    _timer5Seconds.update { it - 1 }
+                }
+                _timer5Running.value = false
+                _timer5Seconds.value = 300
+            } catch (_: InterruptedException) {
+                _timer5Running.value = false
+            }
+        }.also { it.start() }
+    }
+
+    private fun stopTimer5() {
+        _timer5Running.value = false
+        _timer5Seconds.value = 300
+        timer5Thread?.interrupt()
+        timer5Thread = null
+    }
+
+    fun reset() {
+        _settings.value = CoffeeSettings()
+        _result.value = CoffeeCalculator.calculate(CoffeeSettings())
+        _showCustomize.value = false
+        stopTimer4()
+        stopTimer5()
     }
 
     private fun recalculate() {
@@ -116,6 +177,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
     override fun onCleared() {
         super.onCleared()
-        stopTimer()
+        stopTimer4()
+        stopTimer5()
     }
 }
