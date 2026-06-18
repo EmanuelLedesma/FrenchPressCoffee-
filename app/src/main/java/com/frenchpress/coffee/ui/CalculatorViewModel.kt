@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import com.frenchpress.coffee.model.CoffeeCalculator
 import com.frenchpress.coffee.model.CoffeeResult
 import com.frenchpress.coffee.model.CoffeeSettings
+import com.frenchpress.coffee.model.DrinkType
 import com.frenchpress.coffee.model.Intensity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
@@ -76,14 +77,6 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
         _showServingsSheet.value = false
     }
 
-    fun openMlSheet() {
-        _showMlSheet.value = true
-    }
-
-    fun dismissMlSheet() {
-        _showMlSheet.value = false
-    }
-
     fun setIntensity(intensity: Intensity) {
         _settings.update { it.copy(intensity = intensity) }
         recalculate()
@@ -92,6 +85,24 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     fun setMlPerServing(ml: Int) {
         val clamped = ml.coerceIn(50, 500)
         _settings.update { it.copy(mlPerServing = clamped) }
+        recalculate()
+    }
+
+    fun openMlSheet() {
+        _showMlSheet.value = true
+    }
+
+    fun dismissMlSheet() {
+        _showMlSheet.value = false
+    }
+
+    fun setDrinkType(drinkType: DrinkType) {
+        _settings.update { it.copy(drinkType = drinkType) }
+        recalculate()
+    }
+
+    fun setMilkPercentage(percentage: Int) {
+        _settings.update { it.copy(milkPercentage = percentage) }
         recalculate()
     }
 

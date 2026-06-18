@@ -61,11 +61,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.frenchpress.coffee.model.CoffeeSettings
+import com.frenchpress.coffee.model.DrinkType
 import com.frenchpress.coffee.model.Intensity
 import kotlinx.coroutines.launch
 
 @Composable
-fun CalculatorScreen(viewModel: CalculatorViewModel) {
+fun CalculatorScreen(viewModel: CalculatorViewModel, modifier: Modifier = Modifier) {
     val settings by viewModel.settings.collectAsState()
     val result by viewModel.result.collectAsState()
     val showCustomize by viewModel.showCustomize.collectAsState()
@@ -77,7 +78,7 @@ fun CalculatorScreen(viewModel: CalculatorViewModel) {
     val timer5Seconds by viewModel.timer5Seconds.collectAsState()
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
@@ -97,12 +98,36 @@ fun CalculatorScreen(viewModel: CalculatorViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        DrinkTypeSelector(
+            selected = settings.drinkType,
+            onSelect = viewModel::setDrinkType
+        )
+
+        AnimatedVisibility(
+            visible = settings.drinkType == DrinkType.FLAT_WHITE,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(12.dp))
+                MilkPercentageSelector(
+                    selected = settings.milkPercentage,
+                    onSelect = viewModel::setMilkPercentage
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         ResultCard(
             waterFormatted = result.waterFormatted,
             coffeeFormatted = result.coffeeFormatted,
+            milkFormatted = result.milkFormatted,
             servings = settings.servings,
             intensity = settings.intensity,
-            coffeePerPersonG = settings.intensity.coffeePerPersonG
+            coffeePerPersonG = settings.intensity.coffeePerPersonG,
+            drinkType = settings.drinkType,
+            hasMilkCompensation = result.hasMilkCompensation
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -413,9 +438,12 @@ private fun ServingsSelector(
 private fun ResultCard(
     waterFormatted: String,
     coffeeFormatted: String,
+    milkFormatted: String,
     servings: Int,
     intensity: Intensity,
-    coffeePerPersonG: Double
+    coffeePerPersonG: Double,
+    drinkType: DrinkType,
+    hasMilkCompensation: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -445,6 +473,13 @@ private fun ResultCard(
                     label = "Cafe",
                     value = coffeeFormatted
                 )
+                if (drinkType == DrinkType.FLAT_WHITE) {
+                    ResultItem(
+                        emoji = "\uD83E\uDD5B",
+                        label = "Leche",
+                        value = milkFormatted
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -455,6 +490,15 @@ private fun ResultCard(
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
+
+            if (hasMilkCompensation) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Compensacion por leche: +20% cafe",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }
@@ -513,6 +557,106 @@ private fun IntensitySelector(
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DrinkTypeSelector(
+    selected: DrinkType,
+    onSelect: (DrinkType) -> Unit
+) {
+    Column {
+        Text(
+            text = "Tipo de bebida",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            DrinkType.entries.forEach { drinkType ->
+                val isSelected = drinkType == selected
+
+                FilledTonalButton(
+                    onClick = { onSelect(drinkType) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = if (isSelected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (isSelected)
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = drinkType.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MilkPercentageSelector(
+    selected: Int,
+    onSelect: (Int) -> Unit
+) {
+    Column {
+        Text(
+            text = "Porcentaje de leche",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CoffeeSettings.MILK_PERCENTAGES.forEach { percentage ->
+                val isSelected = percentage == selected
+
+                FilledTonalButton(
+                    onClick = { onSelect(percentage) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = if (isSelected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (isSelected)
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "$percentage%",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
